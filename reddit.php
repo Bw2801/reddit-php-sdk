@@ -26,12 +26,29 @@ class reddit{
             $this->token_type = $token_info[0];
             $this->access_token = $token_info[1];
         } else { 
+            if (isset($_COOKIE['reddit_refresh_token'])) {
+                $postvals = sprintf("redirect_uri=%s&grant_type=refresh_token&refresh_token=" . $_COOKIE['reddit_refresh_token'],
+                    redditConfig::$ENDPOINT_OAUTH_REDIRECT);
+                
+                $token = self::runCurl(redditConfig::$ENDPOINT_OAUTH_TOKEN, $postvals, null, true);
+
+                if (isset($token->access_token)) {
+                    $this->access_token = $token->access_token;
+                    $this->token_type = $token->token_type;
+                    
+                    $cookie_time = 60 * 59 + time();
+                    setcookie('reddit_token', "{$this->token_type}:{$this->access_token}", $cookie_time); 
+                }
+
+                return;
+            }
+
             if (isset($_GET['code'])){
                 //capture code from auth
                 $code = $_GET["code"];
                 
                 //construct POST object for access token fetch request
-                $postvals = sprintf("code=%s&redirect_uri=%s&grant_type=authorization_code",
+                $postvals = sprintf("code=%s&redirect_uri=%s&grant_type=authorization_code" . (redditConfig::$REFRESH_TOKEN_ENABLED ? "&duration=permanent" : ""),
                                     $code,
                                     redditConfig::$ENDPOINT_OAUTH_REDIRECT);
                 
@@ -47,9 +64,15 @@ class reddit{
                     $cookie_time = 60 * 59 + time();  //seconds * minutes = 59 minutes (token expires in 1hr) 
                     setcookie('reddit_token', "{$this->token_type}:{$this->access_token}", $cookie_time); 
                 }
+
+                if (isset($token->refresh_token) && redditConfig::$REFRESH_TOKEN_ENABLED) {
+                    $cookie_time = redditConfig::$REFRESH_TOKEN_TIMESPAN + time();
+                    $this->refresh_token = $token->refresh_token;
+                    setcookie('reddit_refresh_token', "{$this->refresh_token}", $cookie_time); 
+                }
             } else {
                 $state = rand();
-                $urlAuth = sprintf("%s?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s",
+                $urlAuth = sprintf("%s?response_type=code&client_id=%s&redirect_uri=%s&scope=%s&state=%s" . (redditConfig::$REFRESH_TOKEN_ENABLED ? "&duration=permanent" : ""),
                                    redditConfig::$ENDPOINT_OAUTH_AUTHORIZE,
                                    redditConfig::$CLIENT_ID,
                                    redditConfig::$ENDPOINT_OAUTH_REDIRECT,

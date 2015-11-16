@@ -6,6 +6,10 @@ class redditConfig{
     static $ENDPOINT_OAUTH_AUTHORIZE = 'https://www.reddit.com/api/v1/authorize';
     static $ENDPOINT_OAUTH_TOKEN = 'https://www.reddit.com/api/v1/access_token';
     static $ENDPOINT_OAUTH_REDIRECT = 'http://localhost/reddit/test.php';
+
+    //activate refresh tokens
+    static $REFRESH_TOKEN_ENABLED = false;
+    static $REFRESH_TOKEN_TIMESPAN = 60 * 60 * 24 * 7; //refresh token will be deleted after 7 days.
     
     //access token configuration from https://ssl.reddit.com/prefs/apps
     static $CLIENT_ID = 'YOUR CLIENT ID';
